@@ -3,27 +3,8 @@ var request = require('superagent');
 var factory = require('./lib/factory');
 var treeTraverse = require('./lib/tree')('children', 'type').treeTraverse;
 
-var p = require('process');
-var i = require('ip');
-var m = require('md5');
-
-var helo_token = '';
-var seed = '';
-
-var is_web = false;
-
-var ENVIROMENT = {
-    PDF: 'PDF',
-    ZIP: 'ZIP',
-    WEB: 'WEB',
-    BOTH: 'BOTH'
-};
-
 var make_md = function(opts) {
     var api_host = (opts || {}).api_host || '';
-
-    var seed = p.pid + ':' + i.address();
-    var sign = m(seed + '\n' + 'RXmRSGlkqv-O2noOKB1nZ');
 
     var color_reg = /^color\s*=\s*(.*)\s*$/;
     var table_width_reg = /^table-width\s*=\s*(.*)\s*$/;
@@ -35,10 +16,7 @@ var make_md = function(opts) {
         return new Promise(function(resolve, reject) {
             try {
                 var r = request.get(url);
-                if(!is_web) {
-                    r.set('auth-token', helo_token)
-    				.set('auth-seed', seed)
-                }
+
                 r.end(function(err, res) {
                     if (err) {
                         // Note: 获取POI失败后，不要影响整体编译，错误信息在 render poi 时用红色文字进行提示
@@ -99,10 +77,10 @@ var make_md = function(opts) {
                     case 'poi':
                     case 'poi-h3':
                     case 'poi-inline':
-                        return render_poi(type, text, ENVIROMENT.BOTH);
+                        return render_poi(type, text);
 
                     case 'poi-pdf':
-                        return render_poi(type, text, ENVIROMENT.PDF);
+                        return render_poi(type, text);
 
                     case 'author-id':
                     case 'author-pageId':
@@ -440,10 +418,6 @@ var make_md = function(opts) {
                 return new Promise(function(resolve, reject) {
                         try {
                             var r = request.get(api_host + '/api/poi/' + p_id);
-                            if(!is_web) {
-                                r.set('auth-token', helo_token)
-                				.set('auth-seed', seed)
-                            }
                             r.end(function(err, res) {
                                     if (err) {
                                         // Note: 获取POI失败后，不要影响整体编译，错误信息在 render poi 时用红色文字进行提示
@@ -567,10 +541,6 @@ var make_md = function(opts) {
                 return new Promise(function(resolve, reject) {
                         try {
                             var r = request.get(api_host + '/api/author/' + a_id);
-                            if(!is_web) {
-                                r.set('auth-token', helo_token)
-                				.set('auth-seed', seed)
-                            }
 
                             r.end(function(err, res) {
                                 if (err) {
@@ -638,25 +608,12 @@ var make_md = function(opts) {
             var result = mod.renderTokens(mod.parse(text), is_pack);
             return Promise.resolve(result);
         },
-        renderTokens: function(tokens, is_pack, token_seed) {
-
-            if(!token_seed) {
-                token_seed = {
-                    helo_token: '',
-                    seed: ''
-                }
-                is_web = true;
-            }
+        renderTokens: function(tokens, is_pack) {
 
             var prepare = x.compose_promise(
                 prepare_author_data,
                 prepare_poi_data,
-                prepare_image_data(is_pack),
-                function (x) {
-                    helo_token = token_seed.helo_token;
-                    seed = token_seed.seed;
-                    return x;
-                }
+                prepare_image_data(is_pack)
             );
 
             tokens = is_pack ? without_nopack(tokens) : tokens;
