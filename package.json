@@ -1,10 +1,7 @@
 {
-  "name": "guide-markdown",
-  "description": "markdown parser customed for Qyer Guide",
+  "name": "kit-markdown",
+  "description": "markdown parser customed",
   "version": "0.1.0",
-  "author": "Lu Taining <taining.lu@qyer.com>",
-  "repository": "git@git.2b6.me:guide/markdown.git",
-  "homepage": "http://git.2b6.me/guide/markdown",
   "main": "index.js",
   "dependencies": {
     "kd-utils": "git+ssh://git@github.com:qiaoyixuan/utils.git",
