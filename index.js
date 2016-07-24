@@ -1,4 +1,4 @@
-var x = require('kd-utils');
+var x = require('kit-utils');
 var request = require('superagent');
 var factory = require('./lib/factory');
 var treeTraverse = require('./lib/tree')('children', 'type').treeTraverse;
