@@ -245,7 +245,7 @@ var make_md = function(opts) {
         });
     };
 
-    var prepare_image_data = x.partial(function(is_pack, tokens) {
+    var prepare_image_data = function(tokens) {
         var token_attr = function(token, attr_name) {
             if (!token || !token.attrs) return;
 
@@ -280,7 +280,7 @@ var make_md = function(opts) {
         return p.then(function() {
             return tokens;
         });
-    });
+    };
 
     var mod = {
         parse: function(text, options) {
@@ -295,7 +295,7 @@ var make_md = function(opts) {
 
             var prepare = x.compose_promise(
                 prepare_some_kind_data_data, //TODO 对某种格式数据的token进行分析，下载数据并缓存
-                prepare_image_data()
+                prepare_image_data
             );
 
             return prepare(tokens)
@@ -308,4 +308,4 @@ var make_md = function(opts) {
     return mod;
 };
 
-module.exports = make_md；
+module.exports = make_md;
