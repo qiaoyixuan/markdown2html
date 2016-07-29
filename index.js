@@ -55,8 +55,8 @@ var make_md = function(opts) {
                     case 'color':
                         return render_color(type, text, nesting);
 
-                    case 'poi-pdf':
-                        return render_poi(type, text);
+                    case 'some_kind_data':
+                        return render_some_kind_data(type, text);
 
                     default:
                         return x.sprintf("<span class=\"${type}\">${text}" + (nesting === 0 ? "</span>" : ""), {
@@ -164,46 +164,35 @@ var make_md = function(opts) {
         });
     };
 
-    var poi_cache = {};
+    var some_kind_data_cache = {};
 
-    var render_poi = function(type, text, en) {
-        var p_tuple = text.split('++'),
-            p_id = p_tuple[0],
-            p_text = p_tuple[1],
-            p_appendix = p_tuple[2] || '',
-            p_info = poi_cache[p_id] || {},
-            p_url = x.sprintf('qyerguide://poi/?id=${p_id}', {
-                p_id: p_id
-            }),
-            h5_url = p_info.h5_url,
-            web_url = p_info.web_url;
+    var render_some_kind_data = function(type, text) {
+        var info = text.split('||'), //TODO 假定格式：$$some_kind_data||123$$
+            id = info[1];
 
         if (Object.keys(p_info).length === 0) {
-            return x.sprintf("<span style=\"background: red; color: white\">Error: POI_ID ${p_id} 没有找到对应数据!!!!!</span>", {
-                p_id: p_id
+            return x.sprintf("<span style=\"background: red; color: white\">Error: some_kind_data_ID ${id} 没有找到对应数据!!!!!</span>", {
+                id: id
             });
         }
 
         return x.sprintf(
-            "<a target=\"_blank\" href=\"${p_url}\" web-url=\"${web_url}\" class=\"${type} poi-link\"><span class=\"title\">${p_text}" + (/inline/.test(type) ? "" : "</span><span class=\"poi-word\">查看详情</span>") + "</a>", {
+            "<a>${type} ${id}</a>", {
                 type: type,
-                p_url: p_url,
-                p_text: p_text,
-                p_appendix: p_appendix,
-                web_url: web_url
+                id: id
             }
         );
     };
 
-    var prepare_poi_data = function(tokens) {
-        var poi_tokens, p;
+    var prepare_some_kind_data_data = function(tokens) {
+        var some_kind_data_tokens, p;
 
-        poi_tokens = x.deep_flatten(tokens.map(function(token) {
+        some_kind_data_tokens = x.deep_flatten(tokens.map(function(token) {
             var ret = [];
 
             treeTraverse(token, function(t) {
                 if (t.type === 'custom_open' &&
-                    (t.meta.split('||')[0] || '').indexOf('poi') !== -1) {
+                    (t.meta.split('||')[0] || '').indexOf('some_kind_data') !== -1) {
                     ret.push(t);
                 }
             });
@@ -211,8 +200,8 @@ var make_md = function(opts) {
             return ret;
         }));
 
-        p = poi_tokens.length <= 0 ? Promise.resolve() :
-            Promise.all(poi_tokens.map(function(token) {
+        p = some_kind_data_tokens.length <= 0 ? Promise.resolve() :
+            Promise.all(some_kind_data_tokens.map(function(token) {
                 var tuple = token.meta.split('||'),
                     type = tuple[0],
                     text = tuple[1];
@@ -222,32 +211,32 @@ var make_md = function(opts) {
 
                 return new Promise(function(resolve, reject) {
                         try {
-                            var r = request.get(api_host + '/api/poi/' + p_id);
+                            var r = request.get(api_host + '/api/some_kind_data/' + p_id);
                             r.end(function(err, res) {
                                     if (err) {
-                                        // Note: 获取POI失败后，不要影响整体编译，错误信息在 render poi 时用红色文字进行提示
-                                        resolve('poi data error');
+                                        // Note: 获取some_kind_data失败后，不要影响整体编译，错误信息在 render some_kind_data 时用红色文字进行提示
+                                        resolve('some_kind_data data error');
                                     }
 
                                     var data = res.body;
 
                                     if (data.error_code !== 0) {
-                                        console.log(x.sprintf('error_code is not zero, but ${error_code}, poi id: ${poi_id}', {
+                                        console.log(x.sprintf('error_code is not zero, but ${error_code}, some_kind_data id: ${some_kind_data_id}', {
                                             error_code: data.error_code,
-                                            poi_id: p_id
+                                            some_kind_data_id: p_id
                                         }));
 
-                                        resolve('poi data error');
+                                        resolve('some_kind_data data error');
                                     }
 
                                     resolve(data.data);
                                 });
                         } catch (e) {
-                            resolve('poi request error: ' + e);
+                            resolve('some_kind_data request error: ' + e);
                         }
                     })
                     .then(function(result) {
-                        poi_cache[p_id] = result.detail;
+                        some_kind_data_cache[p_id] = result.detail;
                     });
             }));
 
@@ -267,8 +256,6 @@ var make_md = function(opts) {
             return found ? found : undefined;
         };
 
-        var cdn_reg = /^http:\/\/pic\d*\.qyer\.com/;
-
         var img_tokens, p;
 
         img_tokens = x.deep_flatten(tokens.map(function(token) {
@@ -285,29 +272,7 @@ var make_md = function(opts) {
 
         p = img_tokens.length <= 0 ? Promise.resolve() :
             Promise.all(img_tokens.map(function(token) {
-                // Note:
-                // 1. full用于老锦囊中类似地图这样需要打包大图的图片
-                // 2. full-image用于其他后续添加的普通全屏大图
-                // 3. 以下条件会使用缩小的图片：
-                //		a) 非打包，即线上使用
-                //		b) 打包状态下，只缩小full-image图片
-                var old_src = token_attr(token, 'src'),
-                    is_full = ['full', 'full-image'].indexOf(token.content) !== -1,
-                    need_shrink = (!is_pack && is_full) || (is_pack && token.content === 'full-image');
-
-                if (is_full && old_src && cdn_reg.test(old_src)) {
-                    if (need_shrink) {
-                        token.attrSet('src', old_src + '/680x');
-                    }
-
-                    return get(old_src + '?imageInfo')
-                        .then(function(data) {
-                            if (data && data.width && data.height) {
-                                token.attrPush(['data-size', [data.width, data.height].join(',')]);
-                            }
-                            return token;
-                        });
-                }
+                // TODO 对token进行修饰,实现渲染图片时根据attr渲染样式
 
                 return Promise.resolve(token);
             }));
@@ -317,49 +282,21 @@ var make_md = function(opts) {
         });
     });
 
-    var without_nopack = function(tokens) {
-        var tuple = x.reduce(function(prev, cur) {
-            var tokens = prev[0],
-                is_nopack_close = prev[1];
-
-            switch (cur.type) {
-                case "container_nopack_open":
-                    return [tokens, false];
-
-                case "container_nopack_close":
-                    return [tokens, true];
-
-                default:
-                    return [
-                        is_nopack_close ? tokens.concat([cur]) : tokens,
-                        is_nopack_close
-                    ];
-            }
-        }, [
-            [], true
-        ], tokens);
-
-        return tuple[0];
-    };
-
     var mod = {
         parse: function(text, options) {
             options = options || {};
             return md.parse(text, options);
         },
-        render: function(text, is_pack) {
-            var result = mod.renderTokens(mod.parse(text), is_pack);
+        render: function(text) {
+            var result = mod.renderTokens(mod.parse(text));
             return Promise.resolve(result);
         },
-        renderTokens: function(tokens, is_pack) {
+        renderTokens: function(tokens) {
 
             var prepare = x.compose_promise(
-                prepare_author_data,
-                prepare_poi_data,
-                prepare_image_data(is_pack)
+                prepare_some_kind_data_data, //TODO 对某种格式数据的token进行分析，下载数据并缓存
+                prepare_image_data()
             );
-
-            tokens = is_pack ? without_nopack(tokens) : tokens;
 
             return prepare(tokens)
                 .then(function(tokens) {

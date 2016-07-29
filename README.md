@@ -16,6 +16,6 @@
 ``` javascript
     var md = require('guide-markdown')();
 
-    md.parse(md_text, {}); //分析语法，获取token
+    md.parse(md_text); //分析语法，获取token
     md.render(md_text); //渲染
 ```
