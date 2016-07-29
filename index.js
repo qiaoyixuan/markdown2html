@@ -6,12 +6,6 @@ var treeTraverse = require('./lib/tree')('children', 'type').treeTraverse;
 var make_md = function(opts) {
     var api_host = (opts || {}).api_host || '';
 
-    var color_reg = /^color\s*=\s*(.*)\s*$/;
-    var table_width_reg = /^table-width\s*=\s*(.*)\s*$/;
-    var static_map_reg = /^static-map\s*=\s*(.*)\s*$/;
-    var static_map_pdf_reg = /^static-map-pdf\s*=\s*(.*)\s*$/;
-    var static_map_info;
-
     var get = function(url) {
         return new Promise(function(resolve, reject) {
             try {
@@ -19,7 +13,7 @@ var make_md = function(opts) {
 
                 r.end(function(err, res) {
                     if (err) {
-                        // Note: 获取POI失败后，不要影响整体编译，错误信息在 render poi 时用红色文字进行提示
+                        // Note: 获取数据失败后，不要影响整体编译，错误信息在 render 时用红色文字进行提示
                         resolve('get data error');
                     }
 
@@ -42,19 +36,6 @@ var make_md = function(opts) {
 
     var md = factory({
         inline: [
-            ['ad', '@@', function(tokens, index, options, self) {
-                var id = tokens[index].meta,
-                    div_id = gen_id();
-
-                return x.sprintf([
-                    "<span class=\"z_container\" id=\"${div_id}\">",
-                    "<script>window.renderAd(${id}, '${div_id}')</script>",
-                    "</span>",
-                ].join("\n"), {
-                    id: id,
-                    div_id: div_id
-                });
-            }],
             ['custom', '$$', function(tokens, index, options, self) {
                 var token = tokens[index],
                     nesting = token.nesting;
@@ -74,32 +55,8 @@ var make_md = function(opts) {
                     case 'color':
                         return render_color(type, text, nesting);
 
-                    case 'poi':
-                    case 'poi-h3':
-                    case 'poi-inline':
-                        return render_poi(type, text);
-
                     case 'poi-pdf':
                         return render_poi(type, text);
-
-                    case 'author-id':
-                    case 'author-pageId':
-                        return render_author(type, text);
-
-                    case 'more-item':
-                        return render_more(type, text);
-
-                    case 'video-url':
-                        return render_video(type, text);
-
-                    case 'google-map':
-                        return render_googleMap(type, text);
-
-                    case 'intro':
-                        return render_introduction(type, text);
-
-                    case 'br':
-                        return render_br();
 
                     default:
                         return x.sprintf("<span class=\"${type}\">${text}" + (nesting === 0 ? "</span>" : ""), {
@@ -129,9 +86,6 @@ var make_md = function(opts) {
         ],
         container: [
             ['tip'],
-            ['overfill'],
-            ['nopack'],
-            ['breakall'],
             ['color', {
                 validate: function(params) {
                     return color_reg.test(params.trim());
@@ -176,122 +130,9 @@ var make_md = function(opts) {
 
                     return self.renderToken(tokens, index, options, env, self);
                 }
-            }],
-            ['static-map', {
-                validate: function(params) {
-                    return static_map_reg.test(params.trim());
-                },
-                render: function(tokens, index, options, env, self) {
-                    if (tokens[index].nesting === 1) {
-                        static_map_info = tokens[index].info.trim();
-
-                        return "<div class=\"static-map\">";
-                    } else {
-                        var match = static_map_info.match(static_map_reg),
-                        link = match[1] || '';
-                        return x.sprintf("<div class=\"map-bottom\"><a href=\"${link}\" ><img src=\"http://test1362383214.qiniudn.com/guide/c390/3139/a56d/790a/1ede/dedd/aa49/663f\"><span>查看地图</span></a></div></div>", {
-                            link: link
-                        });
-                    }
-
-                    return self.renderToken(tokens, index, options, env, self);
-                }
-            }],
-            ['static-map-pdf', {
-                validate: function(params) {
-                    return static_map_pdf_reg.test(params.trim());
-                },
-                render: function(tokens, index, options, env, self) {
-                    if (tokens[index].nesting === 1) {
-                        static_map_info = tokens[index].info.trim();
-
-                        return "<div class=\"static-map-pdf\">";
-                    } else {
-                        var match = static_map_info.match(static_map_pdf_reg),
-                        link = match[1] || '';
-                        return x.sprintf("</div>", {
-                            link: link
-                        });
-                    }
-
-                    return self.renderToken(tokens, index, options, env, self);
-                }
-            }],
-            ['author', {
-                render: function(tokens, idx) {
-                    if (tokens[idx].nesting === 1) {
-                        return "<h2 class=\"author-header\">锦囊作者</h2>";
-
-                    } else {
-                        return '';
-                    }
-                }
-            }],
-            ['more', {
-                render: function(tokens, idx) {
-                    if (tokens[idx].nesting === 1) {
-                        return "<div class=\"container-more\"><span class=\"title-more\">阅读更多内容</span>";
-
-                    } else {
-                        return '</div>';
-                    }
-                }
-            }],
-            ['author-item', {
-                render: function(tokens, idx) {
-                    if (tokens[idx].nesting === 1) {
-                        return "<div class=\"author-item\"><div class=\"author-header-outer\"><a class=\"author-link author-header2\"><span class=\"author-title\">锦囊作者</span><img src=\"http://pic4.qyer.com/guide/284d/9d5c/5718/9b26/1c34/ce7d/038f/639e\" class=\"angle-right\"></a></div>";
-
-                    } else {
-                        return '</div>';
-                    }
-                }
             }]
         ]
     });
-
-    var render_introduction = function (type, text) {
-        var html = "<div class=\"introduction\">${intro}</div>";
-        return x.sprintf(html, {
-            intro: text
-        });
-    };
-
-    var render_googleMap = function (type, text) {
-        var c = text.split('::'),
-            url = c[0] || '缺少地址',
-            href = c[1] || '缺少链接',
-            html = "<div class=\"google-map\"><a href=\"${href}\"><img class=\"map-img\" src=\"${url}\"><div class=\"map-bottom\"><img src=\"http://test1362383214.qiniudn.com/guide/c390/3139/a56d/790a/1ede/dedd/aa49/663f\"><span>查看地图</span></div></a></div>";
-        return x.sprintf(html, {
-            url: url,
-            href: href
-        });
-    };
-
-    var render_more = function (type, text) {
-        var c     = text.split('::'),
-            title = c[0],
-            url   = c[1],
-            html  = "<div class=\"more-item\"><a class=\"more-title\" href=\"${url}\"><span>${title}</span></a></div>";
-        return x.sprintf(html, {
-            url: url,
-            title: title
-        });
-    };
-
-    var render_br = function() {
-        return "<br><br>";
-    };
-
-    var render_video = function(type, text) {
-        var url_img = text + '?vframe/jpg/offset/5|imageView2/0/w/375';
-        var video_html = "<video class=\"${type}\" src=\"${text}\" controls=\"controls\" poster=\"${url_img}\">抱歉您的浏览器不支持播放此视频</video>";
-        return x.sprintf(video_html, {
-            type: type,
-            text: text,
-            url_img: url_img
-        });
-    };
 
     var render_color = function(type, text, nesting) {
         var c_tuple = text.split('++'),
@@ -343,19 +184,6 @@ var make_md = function(opts) {
             });
         }
 
-        if(en === ENVIROMENT.PDF) {
-            return x.sprintf(
-                "<a target=\"_blank\" web-url=\"${web_url}\" class=\"poi ${type} poi-link\"><span style=\"width: 100%;\" class=\"title\">${p_text}</span></a>", {
-                    type: type,
-                    p_url: p_url,
-                    p_text: p_text,
-                    p_appendix: p_appendix,
-                    web_url: web_url
-                }
-            );
-
-        }
-
         return x.sprintf(
             "<a target=\"_blank\" href=\"${p_url}\" web-url=\"${web_url}\" class=\"${type} poi-link\"><span class=\"title\">${p_text}" + (/inline/.test(type) ? "" : "</span><span class=\"poi-word\">查看详情</span>") + "</a>", {
                 type: type,
@@ -363,29 +191,6 @@ var make_md = function(opts) {
                 p_text: p_text,
                 p_appendix: p_appendix,
                 web_url: web_url
-            }
-        );
-    };
-
-    var render_author = function(type, text) {
-        var t = type.split('-')[1],
-            a_id = text,
-            a_info = author_cache[a_id] || {};
-
-        if (Object.keys(a_info).length === 0) {
-            return x.sprintf("<span style=\"background: red; color: white\">Error: AUTHOR_ID ${a_id} 没有找到对应数据!!!!!</span>", {
-                a_id: a_id
-            });
-        }
-        var author_link = type === 'author-pageId' ? 'author-link' : '';
-        var authorHtml = "<a class=\"${type} " + author_link + " clearfix\"><img class=\"avatar\" src=\"${avatar}\"><span class=\"clearfix\"><span class=\"name clearfix\">${name}</span><span class=\"description clearfix\">${description}</span></span></a>";
-
-        return x.sprintf(
-            authorHtml, {
-                type: type,
-                name: a_info.name,
-                avatar: a_info.avatar,
-                description: a_info.description
             }
         );
     };
@@ -512,68 +317,6 @@ var make_md = function(opts) {
         });
     });
 
-
-    var author_cache = {};
-
-    var prepare_author_data = function(tokens) {
-        var author_tokens, a;
-
-        author_tokens = x.deep_flatten(tokens.map(function(token) {
-            var ret = [];
-
-            treeTraverse(token, function(t) {
-                if (t.type === 'custom_open' &&
-                    (t.meta.split('||')[0] || '').indexOf('author') !== -1) {
-                    ret.push(t);
-                }
-            });
-
-            return ret;
-        }));
-
-        a = author_tokens.length <= 0 ? Promise.resolve() :
-            Promise.all(author_tokens.map(function(token) {
-                var tuple = token.meta.split('||'),
-                    type = tuple[0],
-                    text = tuple[1],
-                    a_id = text; // TODO
-
-                return new Promise(function(resolve, reject) {
-                        try {
-                            var r = request.get(api_host + '/api/author/' + a_id);
-
-                            r.end(function(err, res) {
-                                if (err) {
-                                    resolve('author data error');
-                                }
-                                var data = res.body;
-
-                                if (data.error_code !== 0) {
-                                    console.log(x.sprintf('error_code is not zero, but ${error_code}, author id: ${author_id}', {
-                                        error_code: data.error_code,
-                                        author_id: a_id
-                                    }));
-
-                                    resolve('author data error');
-                                }
-
-                                resolve(data.data);
-                            });
-
-                        } catch (e) {
-                            resolve('author request error: ' + e);
-                        }
-                    })
-                    .then(function(result) {
-                        author_cache[a_id] = result;
-                    });
-            }));
-
-        return a.then(function() {
-            return tokens;
-        });
-    };
-
     var without_nopack = function(tokens) {
         var tuple = x.reduce(function(prev, cur) {
             var tokens = prev[0],
@@ -628,4 +371,4 @@ var make_md = function(opts) {
     return mod;
 };
 
-module.exports = make_md
+module.exports = make_md；
