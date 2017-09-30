@@ -4,10 +4,8 @@
   "version": "0.1.0",
   "main": "index.js",
   "dependencies": {
-    "kd-utils": "git+ssh://git@github.com:qiaoyixuan/utils.git",
     "lodash": "^4.6.1",
     "markdown-it": "^6.0.0",
     "markdown-it-container": "^2.0.0",
-    "superagent": "^1.7.2"
   }
 }
