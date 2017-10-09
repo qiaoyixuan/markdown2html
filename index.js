@@ -1,6 +1,8 @@
+// const hljs = require('highlight.js');
 const factory = require('./lib/factory');
 
-const table_width_reg = /(\d+[px|%]+)/g;
+const table_width_reg = /(\d*[px|%]+)/g;
+const code_reg = /^code:(.*)$/;
 
 const make_md = function(opts) {
     const gen_id = function() {
@@ -24,9 +26,21 @@ const make_md = function(opts) {
                     tuple = token.meta.split('||'),
                     type = tuple[0],
                     text = tuple[1];
+
+                const [
+                    size = 'initial',
+                    color = 'initial',
+                    background = 'initial',
+                    weight = 'initial',
+                ] = type.split(/\s+/);
                 switch (type) {
                     default:
-                        return `<span class="${type}">${text}" + ${nesting === 0 ? "</span>" : ""}`;
+                        return `<span style="
+                            color: ${color};
+                            font-size: ${size};
+                            font-weight: ${weight};
+                            background: ${background}
+                            ">${text} ${nesting === 0 ? "</span>" : ""}`;
                 };
             }, {
                 more_token_range: function(content) {
@@ -71,7 +85,30 @@ const make_md = function(opts) {
 
                     return self.renderToken(tokens, index, options, env, self);
                 }
-            }]
+            }],
+            // ['code-box', {
+            //     validate: function(params) {
+            //         return code_reg.test(params.trim());
+            //     },
+            //     render: function(tokens, index, options, env, self) {
+            //         debugger
+            //         if (tokens[index].nesting === 1) {
+            //             const match = tokens[index].info.trim().match(code_reg);
+
+            //             const width_list = (match || []).map(w => w.trim());
+                        
+            //             const style = width_list.map((width, index) =>
+            //                 `#${div_id} td:nth-child(${index + 1}), th:nth-child(${index + 1}) { width: ${width}; }`
+            //             ).join('\n');
+
+            //             const html = `<div id=\"${div_id}\">\n<style>\n${style}\n</style>`;
+
+            //             return html;
+            //         }
+
+            //         return self.renderToken(tokens, index, options, env, self);
+            //     }
+            // }]
         ]
     });
 
@@ -83,10 +120,10 @@ const make_md = function(opts) {
         },
         render: function(text) {
             const result = mod.renderTokens(mod.parse(text));
-            return Promise.resolve(result);
+            return result;
         },
         renderTokens: function(tokens) {
-            return Promise.resolve(md.renderer.render(tokens, {}));
+            return md.renderer.render(tokens, {});
         }
     };
 
