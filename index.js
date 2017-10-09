@@ -85,30 +85,7 @@ const make_md = function(opts) {
 
                     return self.renderToken(tokens, index, options, env, self);
                 }
-            }],
-            // ['code-box', {
-            //     validate: function(params) {
-            //         return code_reg.test(params.trim());
-            //     },
-            //     render: function(tokens, index, options, env, self) {
-            //         debugger
-            //         if (tokens[index].nesting === 1) {
-            //             const match = tokens[index].info.trim().match(code_reg);
-
-            //             const width_list = (match || []).map(w => w.trim());
-                        
-            //             const style = width_list.map((width, index) =>
-            //                 `#${div_id} td:nth-child(${index + 1}), th:nth-child(${index + 1}) { width: ${width}; }`
-            //             ).join('\n');
-
-            //             const html = `<div id=\"${div_id}\">\n<style>\n${style}\n</style>`;
-
-            //             return html;
-            //         }
-
-            //         return self.renderToken(tokens, index, options, env, self);
-            //     }
-            // }]
+            }]
         ]
     });
 
