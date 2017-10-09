@@ -42,24 +42,6 @@ const make_md = function(opts) {
                             background: ${background}
                             ">${text} ${nesting === 0 ? "</span>" : ""}`;
                 };
-            }, {
-                more_token_range: function(content) {
-                    const lastPlusPlus = content.lastIndexOf('++'),
-                        type = content.split('||')[0];
-
-                    if (['contact', 'color'].indexOf(type) === -1) {
-                        return null;
-                    }
-
-                    if (lastPlusPlus === -1) {
-                        return null
-                    }
-
-                    return {
-                        start: lastPlusPlus + 2,
-                        end: content.length
-                    };
-                }
             }]
         ],
         container: [
@@ -89,6 +71,9 @@ const make_md = function(opts) {
         ]
     });
 
+    md.renderer.rules.table_open = function () {
+        return '<table class="table table-bordered table-striped">\n';
+    };
 
     const mod = {
         parse: function(text, options) {
@@ -96,11 +81,7 @@ const make_md = function(opts) {
             return md.parse(text, options);
         },
         render: function(text) {
-            const result = mod.renderTokens(mod.parse(text));
-            return result;
-        },
-        renderTokens: function(tokens) {
-            return md.renderer.render(tokens, {});
+            return md.render(text);
         }
     };
 
