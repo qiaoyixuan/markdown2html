@@ -1,11 +1,11 @@
 {
-  "name": "kit-markdown",
-  "description": "markdown parser customed",
-  "version": "0.1.0",
-  "main": "index.js",
-  "dependencies": {
-    "lodash": "^4.6.1",
-    "markdown-it": "^6.0.0",
-    "markdown-it-container": "^2.0.0",
-  }
+	"name": "kit-markdown",
+	"description": "markdown parser customed",
+	"version": "0.1.0",
+	"main": "index.js",
+	"dependencies": {
+		"lodash": "^4.6.1",
+		"markdown-it": "^6.0.0",
+		"markdown-it-container": "^2.0.0"
+	}
 }
